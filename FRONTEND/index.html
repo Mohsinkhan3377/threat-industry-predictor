@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Threat Industry Predictor</title>
+<style>
+  body {
+    font-family: Arial, sans-serif;
+    max-width: 600px;
+    margin: 40px auto;
+    padding: 20px;
+    background: #0f172a;
+    color: #e2e8f0;
+  }
+  h1 {
+    color: #38bdf8;
+    font-size: 24px;
+  }
+  p.subtitle {
+    color: #94a3b8;
+    margin-bottom: 30px;
+  }
+  label {
+    display: block;
+    margin-top: 15px;
+    margin-bottom: 5px;
+    font-weight: bold;
+  }
+  input, textarea, select {
+    width: 100%;
+    padding: 10px;
+    border-radius: 6px;
+    border: 1px solid #334155;
+    background: #1e293b;
+    color: #e2e8f0;
+    box-sizing: border-box;
+  }
+  button {
+    margin-top: 20px;
+    width: 100%;
+    padding: 12px;
+    background: #38bdf8;
+    color: #0f172a;
+    font-weight: bold;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 16px;
+  }
+  button:hover {
+    background: #0ea5e9;
+  }
+  #result {
+    margin-top: 25px;
+    padding: 15px;
+    border-radius: 6px;
+    background: #1e293b;
+    display: none;
+  }
+  .top-pred {
+    font-size: 20px;
+    color: #4ade80;
+    font-weight: bold;
+  }
+  .prob-row {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 8px;
+    color: #cbd5e1;
+  }
+  #loading {
+    display: none;
+    color: #94a3b8;
+    margin-top: 15px;
+  }
+</style>
+</head>
+<body>
+
+<h1>Threat Industry Predictor</h1>
+<p class="subtitle">Enter details of a cyber threat report to predict which industry is most likely targeted.</p>
+
+<label>Title</label>
+<input type="text" id="title" placeholder="e.g. Ransomware campaign targeting hospitals">
+
+<label>Tags (comma-separated)</label>
+<input type="text" id="tags" placeholder="e.g. ransomware, phishing, data theft">
+
+<label>Country</label>
+<select id="country">
+  <option value="Unknown">Unknown</option>
+  <option value="United States of America">United States of America</option>
+  <option value="Russian Federation">Russian Federation</option>
+  <option value="Ukraine">Ukraine</option>
+  <option value="China">China</option>
+  <option value="Brazil">Brazil</option>
+  <option value="Japan">Japan</option>
+  <option value="British Indian Ocean Territory">British Indian Ocean Territory</option>
+  <option value="Other">Other</option>
+</select>
+
+<label>Known Malware Family Involved?</label>
+<select id="malware">
+  <option value="1">Yes</option>
+  <option value="0">No</option>
+</select>
+
+<label>Description</label>
+<textarea id="description" rows="4" placeholder="Short description of the threat report..."></textarea>
+
+<button onclick="predict()">Predict Target Industry</button>
+
+<div id="loading">Predicting... (backend may take up to a minute to wake up)</div>
+
+<div id="result">
+  <div class="top-pred" id="topPrediction"></div>
+  <div id="probList"></div>
+</div>
+
+<script>
+const API_URL = "https://threat-industry-predictor.onrender.com/predict";
+
+function predict() {
+  var title = document.getElementById('title').value;
+  var tags = document.getElementById('tags').value;
+  var country = document.getElementById('country').value;
+  var has_known_malware = document.getElementById('malware').value;
+  var description = document.getElementById('description').value;
+
+  document.getElementById('loading').style.display = 'block';
+  document.getElementById('result').style.display = 'none';
+
+  fetch(API_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      title: title,
+      tags: tags,
+      country: country,
+      has_known_malware: parseInt(has_known_malware),
+      description: description
+    })
+  })
+  .then(function(response) { return response.json(); })
+  .then(function(data) {
+    document.getElementById('loading').style.display = 'none';
+    document.getElementById('result').style.display = 'block';
+    document.getElementById('topPrediction').innerText = "Predicted Industry: " + data.prediction;
+
+    var probHtml = '<p style="margin-top:15px; color:#94a3b8;">Top 3 possibilities:</p>';
+    data.top_3.forEach(function(p) {
+      probHtml += '<div class="prob-row"><span>' + p.industry + '</span><span>' + (p.confidence*100).toFixed(1) + '%</span></div>';
+    });
+    document.getElementById('probList').innerHTML = probHtml;
+  })
+  .catch(function(error) {
+    document.getElementById('loading').style.display = 'none';
+    alert("Error connecting to the prediction API. The backend might be waking up (free hosting sleeps after inactivity) - please wait 30-60 seconds and try again.");
+    console.error(error);
+  });
+}
+</script>
+
+</body>
+</html>
